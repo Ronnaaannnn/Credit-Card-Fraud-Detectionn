@@ -1,0 +1,12 @@
+services:
+  fraud-app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Dataset is NOT baked into the image; it must exist next to this file
+      - ./creditcard.csv:/app/creditcard.csv:ro
+      # Persist trained model + metrics and generated graphs across restarts
+      - ./artifacts:/app/artifacts
+      - ./static/plots:/app/static/plots
+    restart: unless-stopped

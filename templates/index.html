@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% block body %}
+<h1>Credit-card fraud detection</h1>
+<div class="sub">Random Forest · 70% train / 30% test · Time range 0 – 172792 s · judged by AUPRC</div>
+
+<form method="post" action="{{ url_for('train') }}" class="row">
+  <button type="submit" onclick="this.textContent='Training… (can take a minute)'">{{ 'Retrain model' if m else 'Train model' }}</button>
+  {% if not csv_ok %}<span style="color:var(--bad)">Put <code>creditcard.csv</code> next to app.py first.</span>{% endif %}
+</form>
+
+{% if m %}
+<div class="grid g4">
+  <div class="card stat"><small>AUPRC</small><b>{{ m.auprc }}</b></div>
+  <div class="card stat"><small>ROC-AUC</small><b>{{ m.roc_auc }}</b></div>
+  <div class="card stat"><small>Precision (fraud)</small><b>{{ m.precision }}</b></div>
+  <div class="card stat"><small>Recall (fraud)</small><b>{{ m.recall }}</b></div>
+  <div class="card stat"><small>F1 (fraud)</small><b>{{ m.f1 }}</b></div>
+</div>
+
+<h2>Data split</h2>
+<div class="grid g4">
+  <div class="card stat"><small>Total transactions</small><b>{{ '{:,}'.format(m.rows) }}</b></div>
+  <div class="card stat"><small>Frauds</small><b>{{ m.frauds }} ({{ m.fraud_pct }}%)</b></div>
+  <div class="card stat"><small>Train (70%)</small><b>{{ '{:,}'.format(m.train_rows) }}</b><small>{{ m.train_frauds }} frauds</small></div>
+  <div class="card stat"><small>Test (30%)</small><b>{{ '{:,}'.format(m.test_rows) }}</b><small>{{ m.test_frauds }} frauds</small></div>
+</div>
+
+<h2>Graphs</h2>
+<div class="grid g3">
+  {% for f in ['class_dist','pr_curve','roc_curve','confusion','importance','fraud_time','amount'] %}
+  <div class="card"><img src="{{ url_for('static', filename='plots/'+f+'.png') }}?v={{ m.auprc }}{{ m.f1 }}" alt="{{f}}"></div>
+  {% endfor %}
+</div>
+
+<h2>Classification report (test set, threshold {{ m.threshold }})</h2>
+<pre>{{ m.report }}</pre>
+{% else %}
+<div class="card">No model yet. Add <code>creditcard.csv</code> to the project folder and press <b>Train model</b>.</div>
+{% endif %}
+{% endblock %}

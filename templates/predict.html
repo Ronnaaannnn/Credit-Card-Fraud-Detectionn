@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% block body %}
+<h1>Try a transaction</h1>
+<div class="sub">Enter the 30 inputs. Time must be 0 – {{ tmax }} seconds.</div>
+
+{% if not trained %}<div class="flash err">The model isn't trained yet — go to the Dashboard and train it.</div>{% endif %}
+{% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+
+{% if result %}
+<div class="card" style="border-color:{{ 'var(--bad)' if result.fraud else 'var(--ok)' }}">
+  <h2 style="margin:0">{{ '🚨 Likely FRAUD' if result.fraud else '✅ Looks legitimate' }}</h2>
+  <div>Fraud probability: <b>{{ result.pct }}%</b></div>
+  <div class="bar"><i style="width:{{ result.pct }}%;background:{{ 'var(--bad)' if result.fraud else 'var(--ok)' }}"></i></div>
+</div><br>
+{% endif %}
+
+<div class="card">
+  <label>Paste a full row (30 values, comma / tab / space separated: Time, V1…V28, Amount)</label>
+  <textarea id="paste" rows="2" placeholder="0, -1.359, -0.0727, ..., 149.62"></textarea>
+  <div class="row">
+    <button type="button" class="alt" onclick="fromPaste()">Fill fields from paste</button>
+    <button type="button" class="alt" onclick="sample(0)">Load a real legit example</button>
+    <button type="button" class="alt" onclick="sample(1)">Load a real fraud example</button>
+    <button type="button" class="alt" onclick="document.getElementById('f').reset();document.querySelectorAll('#f input').forEach(i=>i.value='')">Clear</button>
+  </div>
+</div><br>
+
+<form method="post" id="f" class="card">
+  <div class="fields">
+  {% for f in features %}
+    <div><label>{{ f }}{% if f=='Time' %} (0–{{ tmax }}){% elif f=='Amount' %} (€){% endif %}</label>
+    <input name="{{ f }}" id="{{ f }}" type="number" step="any" required value="{{ values.get(f,'') }}"
+      {% if f=='Time' %}min="0" max="{{ tmax }}"{% elif f=='Amount' %}min="0"{% endif %}></div>
+  {% endfor %}
+  </div>
+  <div class="row"><button type="submit">Check transaction</button></div>
+</form>
+
+<script>
+const F={{ features|tojson }};
+function fromPaste(){
+  let v=document.getElementById('paste').value.trim().split(/[\s,;\t]+/).filter(Boolean);
+  if(v.length===31) v=v.slice(0,30);
+  if(v.length!==30){alert('Expected 30 values (got '+v.length+').');return;}
+  F.forEach((n,i)=>document.getElementById(n).value=v[i]);
+}
+async function sample(c){
+  const r=await fetch('/sample?cls='+c); const j=await r.json();
+  if(j.error){alert('Train the model first.');return;}
+  F.forEach(n=>document.getElementById(n).value=j[n]);
+}
+</script>
+{% endblock %}
